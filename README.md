@@ -1,110 +1,112 @@
-Projet : Mesure de la polarisation dans des profils électoraux
+# Projet — Analyse de la Polarisation
 
-------------------------------------------------------------
-Description
-------------------------------------------------------------
+Projet L3 Informatique (2025–2026), cours *Fondements Mathématiques pour l'Aide à la Décision*.
 
-Ce projet a pour objectif d’étudier la polarisation dans des profils électoraux.
-On considère deux types de votes :
+Ce script Python implémente les fonctions développées dans le notebook du projet sur la **mesure de la polarisation des préférences électorales**.
 
-- Votes par approbation (vecteurs binaires)
-- Votes par ordres totaux (permutations)
+---
 
-On implémente différentes méthodes permettant :
+## Contenu du fichier `projet.py`
 
-- de générer des profils avec un niveau de polarisation contrôlé
-- de définir des distances entre votes (Hamming et Spearman)
-- de calculer des mesures de dispersion (u1* et u2*)
-- de définir et analyser une mesure de polarisation φ
-- d’étudier expérimentalement le comportement de cette mesure
+Le fichier est organisé en quatre parties :
 
-------------------------------------------------------------
-Contenu du projet
-------------------------------------------------------------
+### Partie 1 — Génération des profils de vote
 
-Le projet contient les éléments suivants :
+- `generation_profile_approbation(n, m, polarisation, p=0.1)` — Génère un profil de `n` bulletins d'approbation sur `m` candidates. Le paramètre `polarisation` (entre 0 et 1) contrôle le niveau de polarisation : 0 = consensus pur, 1 = deux groupes totalement opposés. Un bruit binomial de paramètre `p` est ajouté pour simuler la variabilité réelle.
+- `generation_profile_ordretotal(n, m, polarisation, p=0.1, scale=1, spread=1)` — Même logique pour des votes par ordre total (classements). Le bruit est introduit par des échanges locaux tirés autour de la position médiane du classement.
 
-1. Génération de profils
-   - generation_profile_approbation
-   - generation_profile_ordretotal
+### Partie 2 — Mesure φ²
 
-2. Distances
-   - distance_hamming
-   - distance_spearman
+- `calcul_d_approbation(p)` — Calcule les valeurs `d_{c_k, c_l}(p)` pour toutes les paires de candidates, pour un profil par approbation. Retourne un dictionnaire `{(k, j): valeur}`.
+- `calcul_d_ordre(p)` — Même calcul pour un profil par ordre total.
+- `phi2_approbation(p)` — Calcule la mesure φ² pour un profil par approbation.
+- `phi2_ordre(p)` — Calcule la mesure φ² pour un profil par ordre total.
 
-3. Calcul de u1*
-   - u1_approbation (optimisé en O(nm))
-   - u1_ordre (résolution via problème d’affectation)
+### Partie 3 — Distances et mesures φ_dH / φ_dS
 
-4. Calcul de u2*
-   - u2_approbation (heuristique de type k-médian)
-   - u2_ordre (heuristique similaire)
+- `distance_hamming(a1, a2)` — Distance de Hamming entre deux bulletins d'approbation.
+- `distance_spearman(s1, s2)` — Distance de Spearman entre deux classements (ordres totaux).
+- `u1_approbation(p)` — Calcule `u1*(p)` pour des votes par approbation en exploitant la valeur majoritaire par coordonnée (complexité O(nm)).
+- `u1_ordre(p)` — Calcule `u1*(p)` pour des votes par ordre total via un couplage parfait de poids minimum (`scipy.optimize.linear_sum_assignment`).
+- `centroide_approbation(cluster)` — Calcule le bulletin consensus d'un cluster (valeur majoritaire par position).
+- `centroide_ordre(cluster)` — Calcule le classement consensus d'un cluster via couplage parfait.
+- `u2_approbation(p, nb_restarts=20)` — Estime `ũ2*(p)` par l'algorithme k-means (k=2) pour des votes par approbation. Plusieurs relances aléatoires sont effectuées pour limiter l'impact des optima locaux.
+- `u2_ordre(p, nb_restarts=20)` — Même estimation pour des votes par ordre total.
+- `phi_dH(p)` — Calcule φ_dH(p) = (2 / n·m) · (u1*(p) − ũ2*(p)) pour un profil par approbation.
+- `phi_dS(p)` — Calcule φ_dS(p) = (4 / n·m²) · (u1*(p) − ũ2*(p)) pour un profil par ordre total.
 
-5. Calcul de la mesure de polarisation
-   - phi_dH
-   - phi_dS
+### Graphiques
 
-6. Expérimentation
-   - tracé de l’évolution de φ en fonction du paramètre de polarisation
+- `plot_phi2(n, m, nb_points)` — Trace l'évolution de φ² en fonction du paramètre de polarisation pour les deux types de votes (questions 6).
+- `experiment(n, m, nb_tests)` — Trace l'évolution de φ_dH et φ_dS en fonction du paramètre de polarisation, en moyennant sur plusieurs profils générés (question 15).
 
-------------------------------------------------------------
-Choix algorithmiques
-------------------------------------------------------------
+### Fonction principale
 
-- Pour u1* en approbation : utilisation d’un vote majoritaire coordonnée par coordonnée.
-- Pour u1* en ordre total : réduction à un problème d’affectation résolu avec scipy.optimize.linear_sum_assignment.
-- Pour u2* : utilisation d’une heuristique de type k-médian (initialisation aléatoire + itérations).
-- Pour φ : application directe de la formule théorique.
+- `main()` — Démontre une utilisation minimale du script : génération de profils, calcul des mesures et affichage des graphiques.
 
-------------------------------------------------------------
-Complexité
-------------------------------------------------------------
+---
 
-- u1_approbation : O(nm)
-- u1_ordre : O(nm^2 + m^3)
-- u2 (heuristique) : dépend du nombre d’itérations
-- φ : coût dominé par u1 et u2
+## Prérequis
 
-------------------------------------------------------------
-Utilisation
-------------------------------------------------------------
+- Python 3.8 ou supérieur
 
-1. Générer un profil :
-   - approbation : generation_profile_approbation(n, m, polarisation)
-   - ordre total : generation_profile_ordretotal(n, m, polarisation)
+---
 
-2. Calculer φ :
-   - phi_dH(p) pour approbation
-   - phi_dS(p) pour ordres
+## Dépendances
 
-3. Lancer l’expérimentation :
-   - utiliser la fonction experiment pour tracer les courbes
+| Bibliothèque | Usage |
+|---|---|
+| `numpy` | Génération aléatoire, calculs vectoriels |
+| `scipy` | Résolution du couplage parfait (`linear_sum_assignment`) |
+| `matplotlib` | Tracé des graphiques |
+| `math` | Calcul de factorielles pour la normalisation de φ² |
+| `random` | Sélection aléatoire des centroïdes initiaux dans k-means |
 
-------------------------------------------------------------
-Dépendances
-------------------------------------------------------------
+---
 
-Le projet nécessite les bibliothèques suivantes :
+## Installation des dépendances
 
-- numpy
-- scipy
-- matplotlib
-- random
+Si les bibliothèques ne sont pas déjà installées :
 
-Installation possible avec :
+```bash
 pip install numpy scipy matplotlib
+```
 
-------------------------------------------------------------
-Remarques
-------------------------------------------------------------
+---
 
-- Le calcul de u2* est approché par une heuristique, ce qui peut introduire de légères variations.
-- Les résultats expérimentaux sont moyennés pour limiter l’effet du hasard.
+## Lancer le script
 
-------------------------------------------------------------
-Auteur
-------------------------------------------------------------
+```bash
+python projet.py
+```
 
-Théo EL ZOGHBI-VILLETTE
-Iliam SOUAMI
-Alessandro UNSWORTH
+L'exécution du `main()` enchaîne les étapes suivantes :
+
+1. Génération d'un profil d'approbation et d'un profil par ordre total avec polarisation intermédiaire.
+2. Affichage des bulletins générés.
+3. Calcul et affichage des mesures φ², d_H, d_S, u1*, φ_dH, φ_dS sur ces profils.
+4. Tracé des courbes d'évolution de φ² en fonction de la polarisation (deux graphiques séparés).
+5. Tracé de la courbe d'évolution de φ_dH et φ_dS (graphique unique avec légende).
+
+Les graphiques s'affichent à l'écran via `matplotlib`. Fermer chaque fenêtre pour passer au suivant.
+
+---
+
+## Remarques importantes
+
+### Temps de calcul
+
+- `u1_ordre` et `u2_ordre` sont coûteux sur des grands profils car ils construisent une matrice m×m pour chaque appel à `linear_sum_assignment`. Avec `nb_restarts=20` dans `u2_ordre`, le calcul peut être lent si `n` et `m` sont grands.
+- Pour les graphiques (`experiment`), réduire `n`, `m` ou `nb_tests` accélère significativement l'exécution.
+
+### scipy — `linear_sum_assignment`
+
+La fonction `linear_sum_assignment` de `scipy.optimize` résout le **problème d'affectation linéaire** (couplage parfait de poids minimum dans un graphe biparti). Elle est utilisée pour calculer `u1_ordre` et `centroide_ordre`. Sa complexité est O(m³).
+
+### numpy — génération aléatoire
+
+Les fonctions de génération utilisent `np.random` (non seedé par défaut). Les résultats varient à chaque exécution. Pour des résultats reproductibles, ajouter `np.random.seed(42)` en début de script ou au début de `main()`.
+
+### matplotlib — affichage interactif
+
+Les graphiques utilisent `plt.show()`, qui bloque l'exécution jusqu'à la fermeture de la fenêtre. En environnement non interactif (serveur, notebook), remplacer par `plt.savefig("nom.png")`.
